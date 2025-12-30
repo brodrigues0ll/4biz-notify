@@ -129,6 +129,20 @@ export async function GET(req) {
         }
 
         sendEvent({
+          type: "progress",
+          percent: 98,
+          message: `Removendo ${comparison.removed.length} tickets obsoletos...`
+        });
+
+        // Deletar tickets removidos (não existem mais na 4Biz)
+        for (const ticketData of comparison.removed) {
+          await Ticket.findOneAndDelete({
+            userId: user._id,
+            ticketId: ticketData.ticketId,
+          });
+        }
+
+        sendEvent({
           type: "complete",
           percent: 100,
           message: "Sincronização concluída!",
@@ -137,6 +151,7 @@ export async function GET(req) {
             new: comparison.new.length,
             updated: comparison.updated.length,
             unchanged: comparison.unchanged.length,
+            removed: comparison.removed.length,
           }
         });
 

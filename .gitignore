@@ -1,5 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+.abc
+
 # dependencies
 /node_modules
 /.pnp
@@ -40,4 +42,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+docker-compose.yml.abc
 docker-compose.yml

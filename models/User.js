@@ -39,6 +39,20 @@ const UserSchema = new mongoose.Schema({
       auth: String,
     },
   },
+  // Configurações de sincronização automática
+  autoSyncEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  autoSyncIntervalMinutes: {
+    type: Number,
+    default: 5,
+    min: 1,
+  },
+  lastAutoSync: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

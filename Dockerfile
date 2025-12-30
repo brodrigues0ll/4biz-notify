@@ -17,7 +17,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN npm run build
+# RUN npm run build
 
 # Production image - needs bullseye for Playwright
 FROM node:20-bullseye-slim AS runner

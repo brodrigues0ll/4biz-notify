@@ -17,6 +17,9 @@ export default function DashboardPage() {
   const [lastSync, setLastSync] = useState(null);
   const [isPaired, setIsPaired] = useState(false);
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(5);
+  const [lastAutoSyncTimestamp, setLastAutoSyncTimestamp] = useState(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -29,8 +32,48 @@ export default function DashboardPage() {
       fetchTickets();
       checkPairing();
       checkCredentials();
+      checkAutoSync();
     }
   }, [status]);
+
+  // Polling inteligente - verifica se houve auto-sync e atualiza tickets
+  useEffect(() => {
+    if (!autoSyncEnabled || status !== 'authenticated') {
+      return;
+    }
+
+    // Verificar status de sync a cada 10 segundos
+    const checkSyncStatus = async () => {
+      try {
+        const response = await fetch('/api/sync-status');
+        const data = await response.json();
+
+        if (response.ok && data.lastAutoSync) {
+          // Se o timestamp mudou, houve uma nova sincronização
+          if (lastAutoSyncTimestamp !== data.lastAutoSync) {
+            console.log('[Dashboard] Nova sincronização detectada! Atualizando tickets...');
+            setLastAutoSyncTimestamp(data.lastAutoSync);
+
+            // Atualizar tickets apenas se não for a primeira vez
+            if (lastAutoSyncTimestamp !== null) {
+              await fetchTickets();
+              setLastSync(new Date(data.lastAutoSync).toLocaleString('pt-BR'));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Dashboard] Erro ao verificar status de sync:', error);
+      }
+    };
+
+    // Verificar imediatamente
+    checkSyncStatus();
+
+    // Continuar verificando a cada 10 segundos
+    const pollingInterval = setInterval(checkSyncStatus, 10000);
+
+    return () => clearInterval(pollingInterval);
+  }, [autoSyncEnabled, status, lastAutoSyncTimestamp]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -67,6 +110,19 @@ export default function DashboardPage() {
     }
   };
 
+  const checkAutoSync = async () => {
+    try {
+      const response = await fetch('/api/auto-sync-config');
+      const data = await response.json();
+      if (response.ok) {
+        setAutoSyncEnabled(data.autoSyncEnabled);
+        setAutoSyncInterval(data.autoSyncIntervalMinutes);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar auto-sync:', error);
+    }
+  };
+
   const handleSync = async () => {
     setSyncing(true);
     setSyncProgress({ percent: 0, message: 'Iniciando...' });
@@ -85,7 +141,8 @@ export default function DashboardPage() {
 
           setTimeout(async () => {
             await fetchTickets();
-            alert(`Sincronização concluída!\n\nNovos: ${data.stats.new}\nAlterados: ${data.stats.updated}\nTotal: ${data.stats.total}`);
+            const removedMsg = data.stats.removed > 0 ? `\nRemovidos: ${data.stats.removed}` : '';
+            alert(`Sincronização concluída!\n\nNovos: ${data.stats.new}\nAlterados: ${data.stats.updated}${removedMsg}\nTotal: ${data.stats.total}`);
             setSyncing(false);
             setSyncProgress({ percent: 0, message: '' });
           }, 1000);
@@ -202,6 +259,17 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium">Sincronização</CardTitle>
             </CardHeader>
             <CardContent>
+              {autoSyncEnabled && (
+                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-blue-700 font-medium">
+                      Auto-sync ativo (a cada {autoSyncInterval} min)
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <Button
                 onClick={handleSync}
                 disabled={syncing || !hasCredentials}

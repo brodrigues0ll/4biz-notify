@@ -26,6 +26,11 @@ export default function SettingsPage() {
   const [showQR, setShowQR] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
 
+  // Auto-sync
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncIntervalMinutes, setAutoSyncIntervalMinutes] = useState(5);
+  const [savingAutoSync, setSavingAutoSync] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -36,6 +41,7 @@ export default function SettingsPage() {
     if (status === 'authenticated') {
       checkPairing();
       loadCredentials();
+      loadAutoSyncConfig();
     }
   }, [status]);
 
@@ -62,6 +68,54 @@ export default function SettingsPage() {
       setIsPaired(data.isPaired);
     } catch (error) {
       console.error('Erro ao verificar pareamento:', error);
+    }
+  };
+
+  const loadAutoSyncConfig = async () => {
+    try {
+      const response = await fetch('/api/auto-sync-config');
+      const data = await response.json();
+
+      if (response.ok) {
+        setAutoSyncEnabled(data.autoSyncEnabled);
+        setAutoSyncIntervalMinutes(data.autoSyncIntervalMinutes);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações de auto-sync:', error);
+    }
+  };
+
+  const handleSaveAutoSync = async () => {
+    if (autoSyncIntervalMinutes < 1) {
+      alert('O intervalo deve ser de pelo menos 1 minuto');
+      return;
+    }
+
+    setSavingAutoSync(true);
+    try {
+      const response = await fetch('/api/auto-sync-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          autoSyncEnabled,
+          autoSyncIntervalMinutes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Configurações de sincronização automática salvas!');
+      } else {
+        alert(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Erro ao salvar configurações de auto-sync:', error);
+      alert('Erro ao salvar configurações');
+    } finally {
+      setSavingAutoSync(false);
     }
   };
 
@@ -320,6 +374,76 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sincronização Automática</CardTitle>
+            <CardDescription>
+              Configure a sincronização automática de chamados da 4Biz
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Status da sincronização</p>
+                <p className="text-sm text-gray-600">
+                  {autoSyncEnabled ? 'Ativada' : 'Desativada'}
+                </p>
+              </div>
+              <Badge variant={autoSyncEnabled ? 'default' : 'secondary'}>
+                {autoSyncEnabled ? 'Ativada' : 'Desativada'}
+              </Badge>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="autoSyncEnabled"
+                  checked={autoSyncEnabled}
+                  onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <Label htmlFor="autoSyncEnabled" className="cursor-pointer">
+                  Ativar sincronização automática
+                </Label>
+              </div>
+              <p className="text-xs text-gray-500 ml-6">
+                Quando ativada, a aplicação sincronizará automaticamente seus chamados da 4Biz
+              </p>
+            </div>
+
+            {autoSyncEnabled && (
+              <div className="space-y-2">
+                <Label htmlFor="autoSyncInterval">Intervalo de sincronização (minutos)</Label>
+                <Input
+                  id="autoSyncInterval"
+                  type="number"
+                  min="1"
+                  value={autoSyncIntervalMinutes}
+                  onChange={(e) => setAutoSyncIntervalMinutes(parseInt(e.target.value) || 1)}
+                />
+                <p className="text-xs text-gray-500">
+                  A cada {autoSyncIntervalMinutes} minuto{autoSyncIntervalMinutes !== 1 ? 's' : ''}, a aplicação verificará novos chamados
+                </p>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <p className="text-sm text-blue-800">
+                <strong>Nota:</strong> Para usar a sincronização automática, você precisa ter configurado
+                suas credenciais da 4Biz acima.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleSaveAutoSync}
+              disabled={savingAutoSync}
+            >
+              {savingAutoSync ? 'Salvando...' : 'Salvar Configurações'}
+            </Button>
           </CardContent>
         </Card>
 

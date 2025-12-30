@@ -49,6 +49,7 @@ Abra: http://localhost:3000
 - ✅ Playwright para web scraping
 - ✅ Web Push para notificações
 - ✅ NextAuth para autenticação
+- ✅ Sincronização automática com cron jobs integrado
 
 ## 🔧 Comandos Úteis
 
@@ -133,9 +134,19 @@ Copie as chaves geradas para o `docker-compose.yml`.
 
 ### Sincronizar chamados
 
+**Sincronização Manual:**
 1. Vá ao Dashboard
 2. Clique em "Sincronizar Agora"
 3. Aguarde a conclusão
+
+**Sincronização Automática:**
+1. Vá em "Configurações"
+2. Role até "Sincronização Automática"
+3. Ative a opção
+4. Defina o intervalo em minutos (padrão: 5 minutos)
+5. Salve as configurações
+
+A aplicação sincronizará automaticamente seus chamados no intervalo definido!
 
 ## 🛠️ Troubleshooting
 
