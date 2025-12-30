@@ -1,0 +1,24 @@
+services:
+  4biz-notify-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 4biz-notify-web
+    restart: unless-stopped
+    ports:
+      - "1177:3000"
+    environment:
+      - MONGODB_URI=mongodb+srv://YOUR_USER:YOUR_PASSWORD@CLUSTER/4biz-notify
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=8f4e7d6c9b2a1f3e5d8c7b4a9e2f1d3c6b5a8e7d4c9f2a1e3b6d5c8f7a4e9b2d
+      - NODE_ENV=production
+      - VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY
+      - VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY
+      - VAPID_SUBJECT=VAPID_SUBJECT
+
+    networks:
+      - 4biz-notify-network
+
+networks:
+  4biz-notify-network:
+    driver: bridge
