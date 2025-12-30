@@ -3,7 +3,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Ticket from "@/models/Ticket";
-import { login4Biz } from "@/lib/login4biz";
+import { login4Biz } from "@/lib/4biz";
 import { compareTickets } from "@/lib/parseTickets";
 import {
   sendNewTicketNotification,
