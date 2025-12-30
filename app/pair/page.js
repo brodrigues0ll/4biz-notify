@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function PairPage() {
+function PairContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('waiting');
   const [message, setMessage] = useState('');
@@ -174,5 +174,21 @@ export default function PairPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PairPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Carregando...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    }>
+      <PairContent />
+    </Suspense>
   );
 }
