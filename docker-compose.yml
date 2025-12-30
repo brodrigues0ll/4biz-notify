@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 4biz-notfy-app
+    restart: unless-stopped
+    ports:
+      - "1177:3000"
+    environment:
+      # Database - Configure com sua URL do MongoDB Atlas ou outro serviço
+      - MONGODB_URI=${MONGODB_URI:-mongodb+srv://brodrigues0ll:Therev9909*@cluster0.n4wii.mongodb.net/4biz-notify}
+
+      # NextAuth
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-8f4e7d6c9b2a1f3e5d8c7b4a9e2f1d3c6b5a8e7d4c9f2a1e3b6d5c8f7a4e9b2d}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+
+      # Web Push VAPID - Generate with: npx web-push generate-vapid-keys
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-BKw1X9abkgkK0ODzWKCtfBY0pGr9eK4h29TgH3cgkGiqla3wCs6tRQFj6tLZGCmCn3BmTtn4fzwrkrs01pjgCAU}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-qqn6Qwb7Sd-WPcx1yDdGvGcWZ4wHyxQCRbYUhgiZ01s}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:<brodrigues0ll@proton.me>}
+
+      # Application
+      - NODE_ENV=production
+      - PUPPETEER_HEADLESS=${PUPPETEER_HEADLESS:-true}
