@@ -17,7 +17,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# RUN npm run build
+RUN npm run build
 
 # Production image - needs bullseye for Playwright
 FROM node:20-bullseye-slim AS runner
@@ -51,8 +51,7 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon0 \
     libxrandr2 \
     libxshmfence1 \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+    xdg-utils 
 
 WORKDIR /app
 
