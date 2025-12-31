@@ -1,25 +1,20 @@
 {
-  "name": "4Biz Notify",
   "short_name": "4Biz Notify",
-  "description": "Sistema de notificações de chamados 4Biz",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
-  "orientation": "portrait",
+  "name": "4Biz Notify",
   "icons": [
     {
       "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "sizes": "192x192"
     },
-
     {
       "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2"
 }
