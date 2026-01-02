@@ -9,6 +9,20 @@ services:
     restart: unless-stopped
     ports:
       - "1177:3000"
+
+    # Limites de recursos para otimizar uso de máquina
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'      # Máximo 1 CPU
+          memory: 1G       # Máximo 1GB RAM
+        reservations:
+          cpus: '0.25'     # Mínimo 0.25 CPU
+          memory: 256M     # Mínimo 256MB RAM
+
+    # Shared memory otimizado para Chromium
+    shm_size: 256mb
+
     environment:
       # Database
       - MONGODB_URI=mongodb+srv://example_user:example_password@cluster0.example.mongodb.net/4biz-notify
@@ -25,3 +39,7 @@ services:
       # Application
       - NODE_ENV=production
       - PUPPETEER_HEADLESS=true
+
+      # Otimizações de recursos
+      - NODE_OPTIONS=--max-old-space-size=768
+      - CRON_INTERVAL_MINUTES=5

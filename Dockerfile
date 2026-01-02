@@ -70,11 +70,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=deps /app/node_modules ./node_modules
 
-# Install Playwright browsers
+# Install Playwright browsers otimizado
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Instala apenas chromium com dependências mínimas
 RUN npx playwright install chromium && \
-    npx playwright install-deps chromium
+    # Limpa caches para reduzir tamanho da imagem
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER nextjs
 
