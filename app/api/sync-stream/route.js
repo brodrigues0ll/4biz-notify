@@ -9,6 +9,7 @@ import {
   sendNewTicketNotification,
   sendStatusChangeNotification,
 } from "@/lib/push";
+import { decrypt } from "@/lib/crypto";
 
 export async function GET(req) {
   const encoder = new TextEncoder();
@@ -21,7 +22,11 @@ export async function GET(req) {
       };
 
       try {
-        sendEvent({ type: "progress", percent: 0, message: "Iniciando sincronização..." });
+        sendEvent({
+          type: "progress",
+          percent: 0,
+          message: "Iniciando sincronização...",
+        });
 
         const session = await getServerSession(authOptions);
 
@@ -42,7 +47,10 @@ export async function GET(req) {
         }
 
         if (!user.fourBizEmail || !user.fourBizPassword) {
-          sendEvent({ type: "error", message: "Credenciais da 4Biz não configuradas" });
+          sendEvent({
+            type: "error",
+            message: "Credenciais da 4Biz não configuradas",
+          });
           controller.close();
           return;
         }
@@ -52,8 +60,15 @@ export async function GET(req) {
           sendEvent({ type: "progress", percent, message });
         };
 
+        // Descriptografa a senha do 4Biz
+        const decryptedPassword = decrypt(user.fourBizPassword);
+
         // Fazer login e extrair tickets usando Playwright com callback de progresso
-        const loginResult = await login4Biz(user.fourBizEmail, user.fourBizPassword, onProgress);
+        const loginResult = await login4Biz(
+          user.fourBizEmail,
+          decryptedPassword,
+          onProgress
+        );
 
         const { cookies, tickets: newTicketsData } = loginResult;
 
@@ -68,7 +83,7 @@ export async function GET(req) {
         sendEvent({
           type: "progress",
           percent: 96,
-          message: `Processando ${newTicketsData?.length || 0} tickets...`
+          message: `Processando ${newTicketsData?.length || 0} tickets...`,
         });
 
         // Buscar tickets existentes no banco
@@ -80,7 +95,7 @@ export async function GET(req) {
         sendEvent({
           type: "progress",
           percent: 97,
-          message: `Salvando ${comparison.new.length} novos tickets...`
+          message: `Salvando ${comparison.new.length} novos tickets...`,
         });
 
         // Processar novos tickets
@@ -95,7 +110,10 @@ export async function GET(req) {
             try {
               await sendNewTicketNotification(user.phoneToken, ticket);
             } catch (error) {
-              console.error('Erro ao enviar notificação de novo ticket:', error);
+              console.error(
+                "Erro ao enviar notificação de novo ticket:",
+                error
+              );
             }
           }
         }
@@ -115,7 +133,7 @@ export async function GET(req) {
             try {
               await sendStatusChangeNotification(user.phoneToken, ticketData);
             } catch (error) {
-              console.error('Erro ao enviar notificação de alteração:', error);
+              console.error("Erro ao enviar notificação de alteração:", error);
             }
           }
         }
@@ -131,7 +149,7 @@ export async function GET(req) {
         sendEvent({
           type: "progress",
           percent: 98,
-          message: `Removendo ${comparison.removed.length} tickets obsoletos...`
+          message: `Removendo ${comparison.removed.length} tickets obsoletos...`,
         });
 
         // Deletar tickets removidos (não existem mais na 4Biz)
@@ -152,16 +170,15 @@ export async function GET(req) {
             updated: comparison.updated.length,
             unchanged: comparison.unchanged.length,
             removed: comparison.removed.length,
-          }
+          },
         });
 
         controller.close();
-
       } catch (error) {
         console.error("Erro na sincronização:", error);
         sendEvent({
           type: "error",
-          message: error.message || "Erro ao sincronizar"
+          message: error.message || "Erro ao sincronizar",
         });
         controller.close();
       }
@@ -172,7 +189,7 @@ export async function GET(req) {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   });
 }
