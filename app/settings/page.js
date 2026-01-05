@@ -342,7 +342,39 @@ export default function SettingsPage() {
               </Badge>
             </div>
 
-            {!isPaired && (
+            {isPaired ? (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    <strong>Dispositivo conectado!</strong> Você está recebendo notificações push neste dispositivo.
+                  </p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-2">Re-parear dispositivo</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Configure um novo dispositivo ou atualize o pareamento atual
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={handleGenerateQR} variant="outline">
+                      Gerar QR Code
+                    </Button>
+                    <Button onClick={handleRequestNotificationPermission} variant="outline">
+                      Re-ativar Notificações
+                    </Button>
+                  </div>
+
+                  {showQR && qrCodeUrl && (
+                    <div className="mt-4 text-center">
+                      <img src={qrCodeUrl} alt="QR Code" className="mx-auto border rounded" />
+                      <p className="text-sm text-gray-600 mt-2">
+                        Escaneie este QR Code com seu celular
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
               <div className="space-y-4">
                 <div className="border-t pt-4">
                   <h3 className="font-medium mb-2">Opção 1: Parear via QR Code</h3>
