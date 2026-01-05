@@ -14,11 +14,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'      # Máximo 1 CPU
-          memory: 1G       # Máximo 1GB RAM
+          cpus: "1.0" # Máximo 1 CPU
+          memory: 1G # Máximo 1GB RAM
         reservations:
-          cpus: '0.25'     # Mínimo 0.25 CPU
-          memory: 256M     # Mínimo 256MB RAM
+          cpus: "0.25" # Mínimo 0.25 CPU
+          memory: 256M # Mínimo 256MB RAM
 
     # Shared memory otimizado para Chromium
     shm_size: 256mb
@@ -43,3 +43,4 @@ services:
       # Otimizações de recursos
       - NODE_OPTIONS=--max-old-space-size=768
       - CRON_INTERVAL_MINUTES=5
+      - ENCRYPTION_KEY=your-encryption-key-here-minimum-32-characters
