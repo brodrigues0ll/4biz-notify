@@ -299,8 +299,15 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {lastSync && !syncing && (
-                <p className="text-xs text-gray-600 mt-2">Última: {lastSync}</p>
+              {lastSync && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Última atualização
+                  </p>
+                  <p className="text-sm font-medium mt-1">
+                    {lastSync}
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
