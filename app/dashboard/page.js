@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { SyncResultsDialog } from '@/components/SyncResultsDialog';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -20,6 +23,8 @@ export default function DashboardPage() {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncInterval, setAutoSyncInterval] = useState(5);
   const [lastAutoSyncTimestamp, setLastAutoSyncTimestamp] = useState(null);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncStats, setSyncStats] = useState(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -141,15 +146,17 @@ export default function DashboardPage() {
 
           setTimeout(async () => {
             await fetchTickets();
-            const removedMsg = data.stats.removed > 0 ? `\nRemovidos: ${data.stats.removed}` : '';
-            alert(`Sincronização concluída!\n\nNovos: ${data.stats.new}\nAlterados: ${data.stats.updated}${removedMsg}\nTotal: ${data.stats.total}`);
+            setSyncStats(data.stats);
+            setSyncDialogOpen(true);
             setSyncing(false);
             setSyncProgress({ percent: 0, message: '' });
           }, 1000);
 
           eventSource.close();
         } else if (data.type === 'error') {
-          alert(`Erro: ${data.message}`);
+          toast.error('Erro na sincronização', {
+            description: data.message
+          });
           setSyncing(false);
           setSyncProgress({ percent: 0, message: '' });
           eventSource.close();
@@ -165,7 +172,9 @@ export default function DashboardPage() {
 
     } catch (error) {
       console.error('Erro ao sincronizar:', error);
-      alert('Erro ao sincronizar');
+      toast.error('Erro ao sincronizar', {
+        description: 'Verifique suas credenciais nas configurações'
+      });
       setSyncing(false);
       setSyncProgress({ percent: 0, message: '' });
     }
@@ -281,22 +290,24 @@ export default function DashboardPage() {
               </Button>
 
               {syncing && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                <div className="mt-3 space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{syncProgress.message}</span>
                     <span>{syncProgress.percent}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${syncProgress.percent}%` }}
-                    ></div>
-                  </div>
+                  <Progress value={syncProgress.percent} className="h-2" />
                 </div>
               )}
 
-              {lastSync && !syncing && (
-                <p className="text-xs text-gray-600 mt-2">Última: {lastSync}</p>
+              {lastSync && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Última atualização
+                  </p>
+                  <p className="text-sm font-medium mt-1">
+                    {lastSync}
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -363,6 +374,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </main>
+
+      <SyncResultsDialog
+        open={syncDialogOpen}
+        onOpenChange={setSyncDialogOpen}
+        stats={syncStats}
+      />
     </div>
   );
 }

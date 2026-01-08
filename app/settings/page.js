@@ -4,11 +4,15 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ShieldCheck, CheckCircle2, Info, AlertCircle } from 'lucide-react';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -30,6 +34,10 @@ export default function SettingsPage() {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncIntervalMinutes, setAutoSyncIntervalMinutes] = useState(5);
   const [savingAutoSync, setSavingAutoSync] = useState(false);
+
+  // Validation errors
+  const [intervalError, setIntervalError] = useState('');
+  const [credentialsError, setCredentialsError] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -87,10 +95,11 @@ export default function SettingsPage() {
 
   const handleSaveAutoSync = async () => {
     if (autoSyncIntervalMinutes < 1) {
-      alert('O intervalo deve ser de pelo menos 1 minuto');
+      setIntervalError('O intervalo deve ser de pelo menos 1 minuto');
       return;
     }
 
+    setIntervalError('');
     setSavingAutoSync(true);
     try {
       const response = await fetch('/api/auto-sync-config', {
@@ -107,13 +116,19 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Configurações de sincronização automática salvas!');
+        toast.success('Configurações salvas!', {
+          description: 'Sincronização automática configurada com sucesso'
+        });
       } else {
-        alert(`Erro: ${data.error}`);
+        toast.error('Erro ao salvar configurações', {
+          description: data.error
+        });
       }
     } catch (error) {
       console.error('Erro ao salvar configurações de auto-sync:', error);
-      alert('Erro ao salvar configurações');
+      toast.error('Erro ao salvar configurações', {
+        description: 'Tente novamente em alguns instantes'
+      });
     } finally {
       setSavingAutoSync(false);
     }
@@ -121,15 +136,16 @@ export default function SettingsPage() {
 
   const handleSaveCredentials = async () => {
     if (!fourBizEmail || !fourBizPassword) {
-      alert('Preencha email e senha da 4Biz');
+      setCredentialsError('Preencha email e senha da 4Biz');
       return;
     }
 
     if (fourBizPassword === '**********') {
-      alert('Digite a senha novamente para atualizar');
+      setCredentialsError('Digite a senha novamente para atualizar');
       return;
     }
 
+    setCredentialsError('');
     setSavingCredentials(true);
     try {
       const response = await fetch('/api/fourbiz-credentials', {
@@ -146,15 +162,21 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Credenciais salvas com sucesso!');
+        toast.success('Credenciais salvas!', {
+          description: 'Suas credenciais foram armazenadas com segurança'
+        });
         setHasCredentials(true);
         setFourBizPassword('**********');
       } else {
-        alert(`Erro: ${data.error}`);
+        toast.error('Erro ao salvar credenciais', {
+          description: data.error
+        });
       }
     } catch (error) {
       console.error('Erro ao salvar credenciais:', error);
-      alert('Erro ao salvar credenciais');
+      toast.error('Erro ao salvar credenciais', {
+        description: 'Verifique sua conexão e tente novamente'
+      });
     } finally {
       setSavingCredentials(false);
     }
@@ -172,13 +194,17 @@ export default function SettingsPage() {
       setShowQR(true);
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
-      alert('Erro ao gerar QR Code');
+      toast.error('Erro ao gerar QR Code', {
+        description: 'Tente novamente'
+      });
     }
   };
 
   const handleRequestNotificationPermission = async () => {
     if (!('Notification' in window)) {
-      alert('Este navegador não suporta notificações');
+      toast.error('Navegador não suportado', {
+        description: 'Este navegador não possui suporte para notificações push'
+      });
       return;
     }
 
@@ -204,18 +230,26 @@ export default function SettingsPage() {
         });
 
         if (response.ok) {
-          alert('Notificações ativadas com sucesso!');
+          toast.success('Notificações ativadas!', {
+            description: 'Você receberá alertas de novos chamados'
+          });
           setIsPaired(true);
           setShowQR(false);
         } else {
-          alert('Erro ao ativar notificações');
+          toast.error('Erro ao ativar notificações', {
+            description: 'Não foi possível conectar ao servidor'
+          });
         }
       } else {
-        alert('Permissão de notificação negada');
+        toast.error('Permissão negada', {
+          description: 'Você precisa permitir notificações nas configurações do navegador'
+        });
       }
     } catch (error) {
       console.error('Erro ao solicitar permissão:', error);
-      alert('Erro ao ativar notificações');
+      toast.error('Erro ao ativar notificações', {
+        description: 'Ocorreu um erro ao solicitar permissão'
+      });
     }
   };
 
@@ -279,7 +313,11 @@ export default function SettingsPage() {
                 type="email"
                 placeholder="seu.email@empresa.com"
                 value={fourBizEmail}
-                onChange={(e) => setFourBizEmail(e.target.value)}
+                onChange={(e) => {
+                  setFourBizEmail(e.target.value);
+                  setCredentialsError('');
+                }}
+                aria-invalid={!!credentialsError}
               />
               <p className="text-xs text-gray-500">
                 Email que você usa para acessar a 4Biz
@@ -293,25 +331,37 @@ export default function SettingsPage() {
                 type="password"
                 placeholder="••••••••"
                 value={fourBizPassword}
-                onChange={(e) => setFourBizPassword(e.target.value)}
+                onChange={(e) => {
+                  setFourBizPassword(e.target.value);
+                  setCredentialsError('');
+                }}
                 onFocus={(e) => {
                   if (e.target.value === '**********') {
                     setFourBizPassword('');
                   }
                 }}
+                aria-invalid={!!credentialsError}
               />
               <p className="text-xs text-gray-500">
                 Senha que você usa para acessar a 4Biz
               </p>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-              <p className="text-sm text-yellow-800">
+            {credentialsError && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {credentialsError}
+              </p>
+            )}
+
+            <Alert variant="warning" className="mt-4">
+              <ShieldCheck className="h-4 w-4" />
+              <AlertDescription>
                 <strong>Nota de segurança:</strong> Suas credenciais são armazenadas de forma segura
                 e usadas apenas para fazer login automático na 4Biz e buscar seus chamados.
                 Nunca compartilharemos suas credenciais com terceiros.
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
 
             <Button
               onClick={handleSaveCredentials}
@@ -344,11 +394,12 @@ export default function SettingsPage() {
 
             {isPaired ? (
               <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-800">
+                <Alert variant="success">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertDescription>
                     <strong>Dispositivo conectado!</strong> Você está recebendo notificações push neste dispositivo.
-                  </p>
-                </div>
+                  </AlertDescription>
+                </Alert>
 
                 <div className="border-t pt-4">
                   <h3 className="font-medium mb-2">Re-parear dispositivo</h3>
@@ -431,12 +482,10 @@ export default function SettingsPage() {
 
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="autoSyncEnabled"
                   checked={autoSyncEnabled}
-                  onChange={(e) => setAutoSyncEnabled(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  onCheckedChange={setAutoSyncEnabled}
                 />
                 <Label htmlFor="autoSyncEnabled" className="cursor-pointer">
                   Ativar sincronização automática
@@ -455,20 +504,32 @@ export default function SettingsPage() {
                   type="number"
                   min="1"
                   value={autoSyncIntervalMinutes}
-                  onChange={(e) => setAutoSyncIntervalMinutes(parseInt(e.target.value) || 1)}
+                  onChange={(e) => {
+                    setAutoSyncIntervalMinutes(parseInt(e.target.value) || 1);
+                    setIntervalError('');
+                  }}
+                  aria-invalid={!!intervalError}
+                  aria-describedby={intervalError ? "interval-error" : undefined}
                 />
+                {intervalError && (
+                  <p id="interval-error" className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {intervalError}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500">
                   A cada {autoSyncIntervalMinutes} minuto{autoSyncIntervalMinutes !== 1 ? 's' : ''}, a aplicação verificará novos chamados
                 </p>
               </div>
             )}
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-              <p className="text-sm text-blue-800">
+            <Alert className="mt-4">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
                 <strong>Nota:</strong> Para usar a sincronização automática, você precisa ter configurado
                 suas credenciais da 4Biz acima.
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
 
             <Button
               onClick={handleSaveAutoSync}
