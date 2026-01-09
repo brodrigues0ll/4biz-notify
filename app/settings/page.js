@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShieldCheck, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Info, AlertCircle, RefreshCw, Download } from 'lucide-react';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -39,6 +39,11 @@ export default function SettingsPage() {
   const [intervalError, setIntervalError] = useState('');
   const [credentialsError, setCredentialsError] = useState('');
 
+  // PWA Update
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [swRegistration, setSwRegistration] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -52,6 +57,34 @@ export default function SettingsPage() {
       loadAutoSyncConfig();
     }
   }, [status]);
+
+  useEffect(() => {
+    // Detectar quando há uma atualização disponível
+    const handleUpdateAvailable = (event) => {
+      setUpdateAvailable(true);
+      setSwRegistration(event.detail.registration);
+      toast.info('Nova versão disponível!', {
+        description: 'Uma atualização da aplicação está disponível',
+        duration: 10000,
+      });
+    };
+
+    window.addEventListener('sw-update-available', handleUpdateAvailable);
+
+    // Verificar se já existe um SW esperando
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((registration) => {
+        if (registration && registration.waiting) {
+          setUpdateAvailable(true);
+          setSwRegistration(registration);
+        }
+      });
+    }
+
+    return () => {
+      window.removeEventListener('sw-update-available', handleUpdateAvailable);
+    };
+  }, []);
 
   const loadCredentials = async () => {
     try {
@@ -200,6 +233,64 @@ export default function SettingsPage() {
     }
   };
 
+  const handleUpdateApp = async () => {
+    if (!swRegistration || !swRegistration.waiting) {
+      toast.error('Nenhuma atualização disponível', {
+        description: 'Não há atualizações pendentes no momento',
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      // Enviar mensagem para o service worker pular a espera
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+      toast.success('Atualizando aplicação...', {
+        description: 'A página será recarregada em instantes',
+      });
+
+      // O reload acontecerá automaticamente via controllerchange event
+    } catch (error) {
+      console.error('Erro ao atualizar:', error);
+      toast.error('Erro ao atualizar', {
+        description: 'Tente recarregar a página manualmente',
+      });
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCheckForUpdates = async () => {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.update();
+
+          // Aguardar um pouco para ver se há atualização
+          setTimeout(() => {
+            if (registration.waiting) {
+              setUpdateAvailable(true);
+              setSwRegistration(registration);
+              toast.info('Nova versão encontrada!', {
+                description: 'Clique em "Atualizar Agora" para aplicar',
+              });
+            } else {
+              toast.success('Aplicação atualizada', {
+                description: 'Você está usando a versão mais recente',
+              });
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar atualizações:', error);
+        toast.error('Erro ao verificar atualizações', {
+          description: 'Tente novamente mais tarde',
+        });
+      }
+    }
+  };
+
   const handleRequestNotificationPermission = async () => {
     if (!('Notification' in window)) {
       toast.error('Navegador não suportado', {
@@ -279,6 +370,65 @@ export default function SettingsPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Atualização do Aplicativo</CardTitle>
+            <CardDescription>
+              Mantenha seu aplicativo sempre atualizado com as últimas melhorias
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Status da aplicação</p>
+                <p className="text-sm text-gray-600">
+                  {updateAvailable ? 'Nova versão disponível' : 'Aplicação atualizada'}
+                </p>
+              </div>
+              <Badge variant={updateAvailable ? 'default' : 'secondary'}>
+                {updateAvailable ? 'Atualização disponível' : 'Atualizado'}
+              </Badge>
+            </div>
+
+            {updateAvailable && (
+              <Alert>
+                <Download className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Nova versão disponível!</strong> Atualize agora para obter as últimas melhorias e correções.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleCheckForUpdates}
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Verificar Atualizações
+              </Button>
+
+              {updateAvailable && (
+                <Button
+                  onClick={handleUpdateApp}
+                  disabled={isUpdating}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isUpdating ? 'Atualizando...' : 'Atualizar Agora'}
+                </Button>
+              )}
+            </div>
+
+            <Alert className="mt-4">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Após clicar em "Atualizar Agora", a aplicação será recarregada automaticamente.
+                Não é mais necessário desinstalar e reinstalar o PWA.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Credenciais da 4Biz</CardTitle>

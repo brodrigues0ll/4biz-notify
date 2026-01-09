@@ -1,4 +1,4 @@
-const CACHE_NAME = "4biz-notify-v1";
+const CACHE_NAME = "4biz-notify-v2";
 const urlsToCache = ["/", "/dashboard", "/login"];
 
 // Instalação do Service Worker
@@ -114,4 +114,11 @@ self.addEventListener("notificationclick", (event) => {
         }
       })
   );
+});
+
+// Listener para mensagens do cliente (para forçar atualização)
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });

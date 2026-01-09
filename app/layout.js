@@ -48,10 +48,38 @@ export default function RootLayout({ children }) {
                 navigator.serviceWorker.register('/sw.js')
                   .then(registration => {
                     console.log('SW registrado:', registration);
+
+                    // Verificar atualizações a cada 60 segundos
+                    setInterval(() => {
+                      registration.update();
+                    }, 60000);
+
+                    // Detectar quando há uma nova versão esperando
+                    registration.addEventListener('updatefound', () => {
+                      const newWorker = registration.installing;
+
+                      newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                          // Nova versão disponível
+                          window.dispatchEvent(new CustomEvent('sw-update-available', {
+                            detail: { registration }
+                          }));
+                        }
+                      });
+                    });
                   })
                   .catch(error => {
                     console.error('Erro ao registrar SW:', error);
                   });
+
+                // Recarregar quando o SW for ativado
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                });
               });
             }
           `,
