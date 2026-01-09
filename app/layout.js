@@ -33,17 +33,16 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2563eb" />
-        <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
-          {children}
-        </Providers>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <Providers>{children}</Providers>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
@@ -55,8 +54,9 @@ export default function RootLayout({ children }) {
                   });
               });
             }
-          `
-        }} />
+          `,
+          }}
+        />
       </body>
     </html>
   );
