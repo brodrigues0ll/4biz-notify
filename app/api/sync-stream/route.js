@@ -46,38 +46,94 @@ export async function GET(req) {
           return;
         }
 
-        if (!user.fourBizEmail || !user.fourBizPassword) {
-          sendEvent({
-            type: "error",
-            message: "Credenciais da 4Biz não configuradas",
-          });
-          controller.close();
-          return;
+        let newTicketsData;
+        let cookies = null;
+
+        // Tentar usar cookies salvos no banco (configurados pelo usuário)
+        if (user.fourBizSessionCookie && user.fourBizAuthToken) {
+          try {
+            sendEvent({
+              type: "progress",
+              percent: 30,
+              message: "Usando cookies configurados...",
+            });
+
+            const { fetchTicketsFromAPI, organizarDadosTicket } = await import("@/lib/4biz");
+            const { decrypt } = await import("@/lib/crypto");
+
+            // Descriptografar os cookies
+            const sessionCookie = decrypt(user.fourBizSessionCookie);
+            const authToken = decrypt(user.fourBizAuthToken);
+
+            // Buscar tickets via API
+            const ticketsAPI = await fetchTicketsFromAPI({
+              sessionCookie,
+              authToken,
+            });
+
+            newTicketsData = ticketsAPI.map(organizarDadosTicket);
+
+            sendEvent({
+              type: "progress",
+              percent: 90,
+              message: `${newTicketsData.length} tickets carregados via API`,
+            });
+          } catch (cookieError) {
+            console.log("Cookies do usuário não funcionaram:", cookieError.message);
+            sendEvent({
+              type: "progress",
+              percent: 30,
+              message: "Cookies expiraram, tentando Playwright...",
+            });
+            newTicketsData = null;
+          }
         }
 
-        // Callback de progresso
-        const onProgress = (percent, message) => {
-          sendEvent({ type: "progress", percent, message });
-        };
+        // Se não conseguiu via cookies, tenta via Playwright (fallback)
+        if (!newTicketsData) {
+          if (!user.fourBizEmail || !user.fourBizPassword) {
+            sendEvent({
+              type: "error",
+              message: "Configure seus cookies da 4Biz em /settings para sincronizar (recomendado) ou adicione email/senha",
+            });
+            controller.close();
+            return;
+          }
 
-        // Descriptografa a senha do 4Biz
-        const decryptedPassword = decrypt(user.fourBizPassword);
+          // Callback de progresso
+          const onProgress = (percent, message) => {
+            sendEvent({ type: "progress", percent, message });
+          };
 
-        // Fazer login e extrair tickets usando Playwright com callback de progresso
-        const loginResult = await login4Biz(
-          user.fourBizEmail,
-          decryptedPassword,
-          onProgress
-        );
+          try {
+            // Descriptografa a senha do 4Biz
+            const decryptedPassword = decrypt(user.fourBizPassword);
 
-        const { cookies, tickets: newTicketsData } = loginResult;
+            // Fazer login e extrair tickets usando Playwright com callback de progresso
+            const loginResult = await login4Biz(
+              user.fourBizEmail,
+              decryptedPassword,
+              onProgress
+            );
 
-        // Atualizar cookies de sessão no banco
-        if (cookies) {
-          await User.findByIdAndUpdate(user._id, {
-            fourBizSessionCookies: cookies,
-            fourBizSessionExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          });
+            cookies = loginResult.cookies;
+            newTicketsData = loginResult.tickets;
+
+            // Atualizar cookies de sessão no banco
+            if (cookies) {
+              await User.findByIdAndUpdate(user._id, {
+                fourBizSessionCookies: cookies,
+                fourBizSessionExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              });
+            }
+          } catch (decryptError) {
+            sendEvent({
+              type: "error",
+              message: "Erro ao descriptografar credenciais. Verifique a ENCRYPTION_KEY no .env",
+            });
+            controller.close();
+            return;
+          }
         }
 
         sendEvent({

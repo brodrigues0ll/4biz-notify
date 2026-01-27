@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { SyncResultsDialog } from '@/components/SyncResultsDialog';
+import { useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { SyncResultsDialog } from "@/components/SyncResultsDialog";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -16,7 +22,7 @@ export default function DashboardPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState({ percent: 0, message: '' });
+  const [syncProgress, setSyncProgress] = useState({ percent: 0, message: "" });
   const [lastSync, setLastSync] = useState(null);
   const [isPaired, setIsPaired] = useState(false);
   const [hasCredentials, setHasCredentials] = useState(false);
@@ -27,13 +33,13 @@ export default function DashboardPage() {
   const [syncStats, setSyncStats] = useState(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (status === "unauthenticated") {
+      router.push("/login");
     }
   }, [status, router]);
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === "authenticated") {
       fetchTickets();
       checkPairing();
       checkCredentials();
@@ -43,31 +49,33 @@ export default function DashboardPage() {
 
   // Polling inteligente - verifica se houve auto-sync e atualiza tickets
   useEffect(() => {
-    if (!autoSyncEnabled || status !== 'authenticated') {
+    if (!autoSyncEnabled || status !== "authenticated") {
       return;
     }
 
     // Verificar status de sync a cada 10 segundos
     const checkSyncStatus = async () => {
       try {
-        const response = await fetch('/api/sync-status');
+        const response = await fetch("/api/sync-status");
         const data = await response.json();
 
         if (response.ok && data.lastAutoSync) {
           // Se o timestamp mudou, houve uma nova sincronização
           if (lastAutoSyncTimestamp !== data.lastAutoSync) {
-            console.log('[Dashboard] Nova sincronização detectada! Atualizando tickets...');
+            console.log(
+              "[Dashboard] Nova sincronização detectada! Atualizando tickets...",
+            );
             setLastAutoSyncTimestamp(data.lastAutoSync);
 
             // Atualizar tickets apenas se não for a primeira vez
             if (lastAutoSyncTimestamp !== null) {
               await fetchTickets();
-              setLastSync(new Date(data.lastAutoSync).toLocaleString('pt-BR'));
+              setLastSync(new Date(data.lastAutoSync).toLocaleString("pt-BR"));
             }
           }
         }
       } catch (error) {
-        console.error('[Dashboard] Erro ao verificar status de sync:', error);
+        console.error("[Dashboard] Erro ao verificar status de sync:", error);
       }
     };
 
@@ -83,13 +91,13 @@ export default function DashboardPage() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/tickets');
+      const response = await fetch("/api/tickets");
       const data = await response.json();
       if (response.ok) {
         setTickets(data.tickets || []);
       }
     } catch (error) {
-      console.error('Erro ao buscar tickets:', error);
+      console.error("Erro ao buscar tickets:", error);
     } finally {
       setLoading(false);
     }
@@ -97,106 +105,107 @@ export default function DashboardPage() {
 
   const checkPairing = async () => {
     try {
-      const response = await fetch('/api/subscribe');
+      const response = await fetch("/api/subscribe");
       const data = await response.json();
       setIsPaired(data.isPaired);
     } catch (error) {
-      console.error('Erro ao verificar pareamento:', error);
+      console.error("Erro ao verificar pareamento:", error);
     }
   };
 
   const checkCredentials = async () => {
     try {
-      const response = await fetch('/api/fourbiz-credentials');
+      const response = await fetch("/api/fourbiz-credentials");
       const data = await response.json();
       setHasCredentials(data.hasCredentials);
     } catch (error) {
-      console.error('Erro ao verificar credenciais:', error);
+      console.error("Erro ao verificar credenciais:", error);
     }
   };
 
   const checkAutoSync = async () => {
     try {
-      const response = await fetch('/api/auto-sync-config');
+      const response = await fetch("/api/auto-sync-config");
       const data = await response.json();
       if (response.ok) {
         setAutoSyncEnabled(data.autoSyncEnabled);
         setAutoSyncInterval(data.autoSyncIntervalMinutes);
       }
     } catch (error) {
-      console.error('Erro ao verificar auto-sync:', error);
+      console.error("Erro ao verificar auto-sync:", error);
     }
   };
 
   const handleSync = async () => {
     setSyncing(true);
-    setSyncProgress({ percent: 0, message: 'Iniciando...' });
+    setSyncProgress({ percent: 0, message: "Iniciando..." });
 
     try {
-      const eventSource = new EventSource('/api/sync-stream');
+      const eventSource = new EventSource("/api/sync-stream");
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
-        if (data.type === 'progress') {
+        if (data.type === "progress") {
           setSyncProgress({ percent: data.percent, message: data.message });
-        } else if (data.type === 'complete') {
+        } else if (data.type === "complete") {
           setSyncProgress({ percent: 100, message: data.message });
-          setLastSync(new Date().toLocaleString('pt-BR'));
+          setLastSync(new Date().toLocaleString("pt-BR"));
 
           setTimeout(async () => {
             await fetchTickets();
             setSyncStats(data.stats);
             setSyncDialogOpen(true);
             setSyncing(false);
-            setSyncProgress({ percent: 0, message: '' });
+            setSyncProgress({ percent: 0, message: "" });
           }, 1000);
 
           eventSource.close();
-        } else if (data.type === 'error') {
-          toast.error('Erro na sincronização', {
-            description: data.message
+        } else if (data.type === "error") {
+          toast.error("Erro na sincronização", {
+            description: data.message,
           });
           setSyncing(false);
-          setSyncProgress({ percent: 0, message: '' });
+          setSyncProgress({ percent: 0, message: "" });
           eventSource.close();
         }
       };
 
       eventSource.onerror = (error) => {
-        console.error('Erro no EventSource:', error);
+        console.error("Erro no EventSource:", error);
         eventSource.close();
         setSyncing(false);
-        setSyncProgress({ percent: 0, message: '' });
+        setSyncProgress({ percent: 0, message: "" });
       };
-
     } catch (error) {
-      console.error('Erro ao sincronizar:', error);
-      toast.error('Erro ao sincronizar', {
-        description: 'Verifique suas credenciais nas configurações'
+      console.error("Erro ao sincronizar:", error);
+      toast.error("Erro ao sincronizar", {
+        description: "Verifique suas credenciais nas configurações",
       });
       setSyncing(false);
-      setSyncProgress({ percent: 0, message: '' });
+      setSyncProgress({ percent: 0, message: "" });
     }
   };
 
   const getStatusColor = (status) => {
-    const statusLower = status?.toLowerCase() || '';
-    if (statusLower.includes('suspensa')) return 'secondary';
-    if (statusLower.includes('cancelad')) return 'destructive';
-    if (statusLower.includes('resolvid') || statusLower.includes('fechad')) return 'outline';
-    if (statusLower.includes('andamento')) return 'default';
-    return 'default';
+    const statusLower = status?.toLowerCase() || "";
+    if (statusLower.includes("suspensa")) return "secondary";
+    if (statusLower.includes("cancelad")) return "destructive";
+    if (statusLower.includes("resolvid") || statusLower.includes("fechad"))
+      return "outline";
+    if (statusLower.includes("andamento")) return "default";
+    return "default";
   };
 
   const getPriorityColor = (priority) => {
-    const priorityLower = priority?.toLowerCase() || '';
-    if (priorityLower.includes('alta') || priorityLower.includes('crítica')) return 'destructive';
-    if (priorityLower.includes('média')) return 'default';
-    return 'secondary';
+    const priorityLower = priority?.toLowerCase() || "";
+    if (priorityLower.includes("alta") || priorityLower.includes("crítica"))
+      return "destructive";
+    if (priorityLower.includes("média")) return "default";
+    return "secondary";
   };
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Carregando...</p>
@@ -204,7 +213,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (status === 'unauthenticated') {
+  if (status === "unauthenticated") {
     return null;
   }
 
@@ -215,13 +224,21 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">4Biz Notify</h1>
-              <p className="text-sm text-gray-600">Olá, {session?.user?.name}</p>
+              <p className="text-sm text-gray-600">
+                Olá, {session?.user?.name}
+              </p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => router.push('/settings')} variant="outline">
+              <Button
+                onClick={() => router.push("/settings")}
+                variant="outline"
+              >
                 Configurações
               </Button>
-              <Button onClick={() => signOut({ callbackUrl: '/login' })} variant="outline">
+              <Button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                variant="outline"
+              >
                 Sair
               </Button>
             </div>
@@ -239,14 +256,14 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Credenciais 4Biz:</span>
-                  <Badge variant={hasCredentials ? 'default' : 'destructive'}>
-                    {hasCredentials ? 'Configurado' : 'Não configurado'}
+                  <Badge variant={hasCredentials ? "default" : "destructive"}>
+                    {hasCredentials ? "Configurado" : "Não configurado"}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Celular:</span>
-                  <Badge variant={isPaired ? 'default' : 'secondary'}>
-                    {isPaired ? 'Pareado' : 'Não pareado'}
+                  <Badge variant={isPaired ? "default" : "secondary"}>
+                    {isPaired ? "Pareado" : "Não pareado"}
                   </Badge>
                 </div>
               </div>
@@ -265,7 +282,9 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Sincronização</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Sincronização
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {autoSyncEnabled && (
@@ -286,7 +305,7 @@ export default function DashboardPage() {
               >
                 {syncing
                   ? `Sincronizando ${syncProgress.percent}%`
-                  : 'Sincronizar Agora'}
+                  : "Sincronizar Agora"}
               </Button>
 
               {syncing && (
@@ -304,9 +323,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">
                     Última atualização
                   </p>
-                  <p className="text-sm font-medium mt-1">
-                    {lastSync}
-                  </p>
+                  <p className="text-sm font-medium mt-1">{lastSync}</p>
                 </div>
               )}
             </CardContent>
@@ -342,15 +359,17 @@ export default function DashboardPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">#{ticket.ticketId}</h3>
-                          <Badge variant={getStatusColor(ticket.status)}>
-                            {ticket.status}
+                          <h3 className="font-semibold text-lg">
+                            #{ticket.ticketId}
+                          </h3>
+                          <Badge variant={getStatusColor(ticket.situacao)}>
+                            {ticket.situacao}
                           </Badge>
-                          <Badge variant={getPriorityColor(ticket.priority)}>
+                          <Badge variant={getStatusColor(ticket.priority)}>
                             {ticket.priority}
                           </Badge>
                         </div>
-                        <p className="text-gray-700 mb-2">{ticket.title}</p>
+                        <p className="text-gray-700 mb-2">{ticket.descricao}</p>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                           {ticket.solicitante && (
                             <span>Solicitante: {ticket.solicitante}</span>
@@ -358,14 +377,12 @@ export default function DashboardPage() {
                           {ticket.responsavel && (
                             <span>Responsável: {ticket.responsavel}</span>
                           )}
-                          {ticket.sla && (
-                            <span>SLA: {ticket.sla}</span>
-                          )}
                         </div>
                       </div>
                     </div>
                     <div className="text-xs text-gray-400">
-                      Atualizado: {new Date(ticket.updatedAt).toLocaleString('pt-BR')}
+                      Atualizado:{" "}
+                      {new Date(ticket.updatedAt).toLocaleString("pt-BR")}
                     </div>
                   </div>
                 ))}

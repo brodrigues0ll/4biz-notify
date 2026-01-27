@@ -104,10 +104,14 @@ export async function GET(req) {
     }
 
     const hasCredentials = !!(user.fourBizEmail && user.fourBizPassword);
+    const hasCookies = !!(user.fourBizSessionCookie && user.fourBizAuthToken);
 
     return NextResponse.json({
-      hasCredentials,
+      hasCredentials: hasCredentials || hasCookies, // Considera configurado se tiver cookies OU credenciais
       email: hasCredentials ? user.fourBizEmail : null,
+      hasCookies,
+      sessionCookie: hasCookies ? user.fourBizSessionCookie : null,
+      authToken: hasCookies ? user.fourBizAuthToken : null,
       sessionValid: user.fourBizSessionExpiry
         ? new Date(user.fourBizSessionExpiry) > new Date()
         : false,

@@ -22,6 +22,26 @@ const TicketSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Prioridade é obrigatória'],
   },
+  situacao: {
+    type: String,
+    default: '',
+  },
+  situacaoCodigo: {
+    type: Number,
+    default: null,
+  },
+  tipo: {
+    type: String,
+    default: '',
+  },
+  grupo: {
+    type: String,
+    default: '',
+  },
+  idGrupo: {
+    type: Number,
+    default: null,
+  },
   sla: {
     type: String,
     default: '',
@@ -41,6 +61,22 @@ const TicketSchema = new mongoose.Schema({
   dataLimite: {
     type: String,
     default: '',
+  },
+  dataCriacao: {
+    type: String,
+    default: '',
+  },
+  descricao: {
+    type: String,
+    default: '',
+  },
+  numero: {
+    type: String,
+    default: '',
+  },
+  statusFluxo: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
   },
   raw: {
     type: mongoose.Schema.Types.Mixed,

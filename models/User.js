@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Por favor, forneça uma senha'],
   },
-  // Credenciais da 4Biz para login automático
+  // Credenciais da 4Biz para login automático (OPCIONAL - pode usar cookies direto)
   fourBizEmail: {
     type: String,
     default: '',
@@ -23,7 +23,16 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  // Cookies de sessão salvos após login (cache)
+  // Cookies de sessão - Configuração Manual (RECOMENDADO)
+  fourBizSessionCookie: {
+    type: String,
+    default: '',
+  },
+  fourBizAuthToken: {
+    type: String,
+    default: '',
+  },
+  // Cookies de sessão salvos após login (cache - legado)
   fourBizSessionCookies: {
     type: String,
     default: '',
