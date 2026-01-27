@@ -1,30 +1,29 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const TicketSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   },
   ticketId: {
     type: Number,
-    required: [true, 'ID do chamado é obrigatório'],
+    required: [true, "ID do chamado é obrigatório"],
   },
   title: {
     type: String,
-    required: [true, 'Título é obrigatório'],
+    required: [true, "Título é obrigatório"],
   },
   status: {
     type: String,
-    required: [true, 'Status é obrigatório'],
   },
   priority: {
     type: String,
-    required: [true, 'Prioridade é obrigatória'],
+    required: [true, "Prioridade é obrigatória"],
   },
   situacao: {
     type: String,
-    default: '',
+    default: "",
   },
   situacaoCodigo: {
     type: Number,
@@ -32,11 +31,11 @@ const TicketSchema = new mongoose.Schema({
   },
   tipo: {
     type: String,
-    default: '',
+    default: "",
   },
   grupo: {
     type: String,
-    default: '',
+    default: "",
   },
   idGrupo: {
     type: Number,
@@ -44,35 +43,35 @@ const TicketSchema = new mongoose.Schema({
   },
   sla: {
     type: String,
-    default: '',
+    default: "",
   },
   solicitante: {
     type: String,
-    default: '',
+    default: "",
   },
   responsavel: {
     type: String,
-    default: '',
+    default: "",
   },
   servico: {
     type: String,
-    default: '',
+    default: "",
   },
   dataLimite: {
     type: String,
-    default: '',
+    default: "",
   },
   dataCriacao: {
     type: String,
-    default: '',
+    default: "",
   },
   descricao: {
     type: String,
-    default: '',
+    default: "",
   },
   numero: {
     type: String,
-    default: '',
+    default: "",
   },
   statusFluxo: {
     type: mongoose.Schema.Types.Mixed,
@@ -95,4 +94,4 @@ const TicketSchema = new mongoose.Schema({
 // Criar índice composto para evitar duplicação de tickets por usuário
 TicketSchema.index({ userId: 1, ticketId: 1 }, { unique: true });
 
-export default mongoose.models.Ticket || mongoose.model('Ticket', TicketSchema);
+export default mongoose.models.Ticket || mongoose.model("Ticket", TicketSchema);
